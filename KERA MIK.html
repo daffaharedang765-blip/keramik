@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualisasi Tiling Fibonacci</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+        }
+
+        /*BAGIAN JUDUL */
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            max-width: 800px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem; 
+        }
+
+        p.description {
+            color: #555;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .legend-inline {
+            display: inline-block;
+            margin: 0 5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        /*BAGIAN KONTROL*/
+        .controls {
+            background: white;
+            padding: 20px 40px;
+            border-radius: 50px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+            position: sticky;
+            top: 20px;
+            z-index: 100;
+            border: 1px solid #ddd;
+        }
+
+        input {
+            padding: 10px;
+            width: 70px;
+            text-align: center;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 24px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s, background 0.2s;
+        }
+        button:hover { 
+            background-color: #219150; 
+            transform: scale(1.05);
+        }
+
+        .summary {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* --- GALERI GAMBAR --- */
+        #gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+            width: 100%;
+            padding-bottom: 50px;
+        }
+
+        .solution-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .solution-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+
+        .floor-strip {
+            display: flex;
+            border: 3px solid #333;
+            background-color: #eee;
+        }
+
+        .label-seq {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #777;
+            font-weight: 500;
+        }
+
+        /* --- KERAMIK --- */
+        .col-wrapper { display: flex; flex-direction: column; }
+        
+        .tile {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 10px;
+            border: 1px solid rgba(255,255,255,0.5);
+            box-sizing: border-box;
+        }
+
+        .tile.vertical {
+            width: 30px;
+            height: 60px;
+            background-color: #e74c3c; /* Merah */
+        }
+
+        .tile.horizontal {
+            width: 60px;
+            height: 30px;
+            background-color: #3498db; /* Biru */
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Visualisasi Kombinasi Keramik (2 x N)</h1>
+        <p class="description">
+            Menampilkan seluruh kemungkinan penyusunan keramik pada lantai.
+            <br>
+            <span class="legend-inline" style="background:#e74c3c">Merah = Vertikal (2x1)</span>
+            <span class="legend-inline" style="background:#3498db">Biru = Horizontal (1x2)</span>
+        </p>
+    </header>
+
+    <div class="controls">
+        <label for="n-input" style="font-weight:bold; margin-right:10px;">Panjang N:</label>
+        <input type="number" id="n-input" value="4" min="1" max="15">
+        <button onclick="generateAll()">Tampilkan Kemungkinan</button>
+        <div class="summary" id="summary">Silakan masukkan angka dan tekan tombol.</div>
+    </div>
+
+    <div id="gallery"></div>
+
+    <script>
+        let solutions = [];
+
+        function generateAll() {
+            const nInput = document.getElementById('n-input');
+            const gallery = document.getElementById('gallery');
+            const summary = document.getElementById('summary');
+            
+            let n = parseInt(nInput.value);
+
+            if (isNaN(n) || n < 1) { alert("Masukkan angka N minimal 1"); return; }
+            if (n > 13) {
+                let confirmBig = confirm("Peringatan: Angka besar akan menghasilkan ribuan gambar. Lanjutkan?");
+                if (!confirmBig) return;
+            }
+
+            // Reset
+            solutions = [];
+            gallery.innerHTML = '';
+            summary.innerHTML = 'Sedang menghitung...';
+
+            // Jalankan Rekursi
+            findPatterns([], n);
+
+            // Tampilkan Info Jumlah
+            summary.innerHTML = `Ditemukan <span style="color:#d35400; font-size:1.2em;">${solutions.length}</span> variasi untuk N=${n}`;
+
+            // Render Gambar
+            // Gunakan setTimeout agar browser sempat merender teks "Sedang menghitung" sebelum berat merender gambar
+            setTimeout(() => {
+                solutions.forEach((pattern, index) => {
+                    createVisualFloor(pattern, index + 1);
+                });
+            }, 10);
+        }
+
+        function findPatterns(currentPath, remaining) {
+            if (remaining === 0) {
+                solutions.push(currentPath);
+                return;
+            }
+            if (remaining >= 1) findPatterns([...currentPath, 'V'], remaining - 1);
+            if (remaining >= 2) findPatterns([...currentPath, 'H'], remaining - 2);
+        }
+
+        function createVisualFloor(pattern, index) {
+            const gallery = document.getElementById('gallery');
+            const card = document.createElement('div');
+            card.className = 'solution-card';
+
+            const floorBox = document.createElement('div');
+            floorBox.className = 'floor-strip';
+
+            pattern.forEach(type => {
+                if (type === 'V') {
+                    let tile = document.createElement('div');
+                    tile.className = 'tile vertical';
+                    floorBox.appendChild(tile);
+                } else if (type === 'H') {
+                    let col = document.createElement('div');
+                    col.className = 'col-wrapper';
+                    let t1 = document.createElement('div'); t1.className = 'tile horizontal';
+                    let t2 = document.createElement('div'); t2.className = 'tile horizontal';
+                    col.appendChild(t1); col.appendChild(t2);
+                    floorBox.appendChild(col);
+                }
+            });
+
+            const label = document.createElement('div');
+            label.className = 'label-seq';
+            label.innerText = `Pola #${index}`;
+
+            card.appendChild(floorBox);
+            card.appendChild(label);
+            gallery.appendChild(card);
+        }
+    </script>
+</body>
+</html>
